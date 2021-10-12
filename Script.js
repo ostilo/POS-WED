@@ -278,6 +278,10 @@ function upload(input) {  //支持chrome IE10
     }
 }
 
+function getQPosInfo(){
+    mService.getQPosInfo();
+}
+
 function selectEmvFile(){
     //$('#updateEmvFile').click();
     if(Connected){
@@ -313,6 +317,7 @@ function startTrade(){
         setAmount(amount, "", currency, transactionTypeConvert(tractionType));
         // setAmountIcon(AmountType.MONEY_TYPE_CUSTOM_STR,"Rs");
         mService.doTrade(0,20);
+        // mService.lcdShowCustomDisplay(LcdModeAlign.LCD_MODE_ALIGNCENTER,)
         // var strArr = stringToBytes("enter amount");
         // var displayStr = byteArray2Hex(strArr);
         // mService.doInputCustomStr(CustomInputOperateType.isNumber, CustomInputDisplayType.Other, 6,displayStr,"test",amount);
