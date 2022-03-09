@@ -9,7 +9,6 @@ var notify_uuid = "49535343-1e4d-4bd9-ba61-23c647249616";
 var MPOS_DATA_Ready = false;
 var MPOS_Notify_State;
 
-
 //设备抽象
 var Connected_Device;
 //连接状态
@@ -17,6 +16,25 @@ var Connected_Server;
 var Connected = false;
 //服务是否存在
 var MPOS_SERVICE_FLAG = false;
+
+document.addEventListener('DOMContentLoaded', async () => {
+    console.log('Startup ----');
+    let devices = await navigator.usb.getDevices();
+    devices.forEach(device => {
+      // prettier-ignore
+      console.log(`USB Device Detected: ${device.productName}     serial: ${device.serialNumber}     vendorId: ${device.vendorId}`);
+    });
+  });
+  
+navigator.usb.addEventListener('connect', event => {
+    console.warn('A USB Device was connected');
+});
+  
+navigator.usb.addEventListener('disconnect', event => {
+    console.warn('A USB Device was disconnected!');
+});
+  
+let button = document.getElementById('request-device');
 
 var trasactionData = document.getElementById("displayText");
 
@@ -156,6 +174,7 @@ QPOSServiceListenerImpl.prototype.onDoTradeResult = function (msg,msg1) {
 }
 
 QPOSServiceListenerImpl.prototype.onRequestOnlineProcess = function (msg) {
+    console.log('onRequestOnlineProcess ='+msg);
     var str = "8A023030";//Currently the default value,
     mService.sendOnlineProcessResult(str);
     trasactionData.innerText = "onRequestOnlineProcess:"+"\r" + msg;
@@ -164,6 +183,12 @@ QPOSServiceListenerImpl.prototype.onRequestOnlineProcess = function (msg) {
 QPOSServiceListenerImpl.prototype.onRequestBatchData = function (iccData) {
     console.log("onRequestBatchData" + iccData);
     trasactionData.innerText = "onRequestBatchData:" +"\r"+ iccData;
+    // mService.getNewICCTag(0,1,'57',function onSuccess(iccResult) {
+    //         console.log(iccResult);
+    //     } , function onFail(error){
+    //         console.log(error);
+    //     });
+    
 } 
 
 QPOSServiceListenerImpl.prototype.onReturnReversalData = function (iccData) {
@@ -192,7 +217,7 @@ QPOSServiceListenerImpl.prototype.onReturnUpdateEMVRIDResult = function (flag) {
     }
 }
 QPOSServiceListenerImpl.prototype.onReturnCustomConfigResult = function (flag, msg) {
-    console.log("onReturnCustomConfigResult: " + flag+ "\n"+msg);
+    console.log("onReturnCustomConfigResult: " + flag+ " "+msg);
     if (flag) {
        trasactionData.innerText = "onReturnCustomConfigResult: Success\n"+msg; 
     }else{
@@ -252,6 +277,41 @@ QPOSServiceListenerImpl.prototype.onReturnUpdateIPEKResult = function (flag) {
     } 
 }
 
+QPOSServiceListenerImpl.prototype.onReturnApduResult = function(result,apdu,apduLen){
+    console.log("onReturnApduResult(boolean result,String apdu,int adpuLen)----------" + result+"\n"+apdu+"\n"+apduLen);
+    trasactionData.innerText = "onReturnApduResult:"+result+"\n"+"apdu is "+apdu+"\n"+"length is "+apduLen;
+}
+
+QPOSServiceListenerImpl.prototype.onReturnPowerOffNFCResult = function(result){
+    console.log("onReturnPwerOffNFCResult:"+result);
+    if(result){
+        trasactionData.innerText = "onReturnPwerOffNFCResult:success";
+    }else{
+        trasactionData.innerText = "onReturnPwerOffNFCResult:fail";
+    }
+}
+
+QPOSServiceListenerImpl.prototype.onReturnPowerOnNFCResult = function(result,ksn,atr,atrLen){
+    console.log("onReturnPowerOnNFCResult(boolean result,String ksn,String atr,int atrLen)-------"+result+"\n"+ksn+"\n"+atr+"\n"+atrLen);
+    trasactionData.innerText = "onReturnPowerOnNFCResult:"+result+"\n"+"ksn:"+ksn+"\n"+"atr:"+atr+"\n"+"atrLen:"+atrLen;
+}
+
+button.addEventListener('click', async () => {
+    if (button.innerHTML === 'Connect') {
+      connectToDeviceUSB();
+      mService.setCommunicationMode(CommunicationMode.USB); 
+      Connected = true;
+      
+    } else {
+      // disconnect the USB device
+      // TODO: figure out how to release this
+      // await mDevice.close(); 
+      disconnectToDeviceUSB();
+      button.innerHTML = 'Connect';
+      Connected = false;
+    }
+  });
+
 function dialog(){
   var str = prompt("Please input your pin","123456");
   if(str){
@@ -261,6 +321,7 @@ function dialog(){
 }
 
 function upload(input) {  //支持chrome IE10  
+    console.log("upload");
     if (window.FileReader) {  
         console.log("upload");
         var file = input.files[0];  
@@ -268,6 +329,7 @@ function upload(input) {  //支持chrome IE10
         var reader = new FileReader();  
         reader.onload = function() {  
             alert(this.result.length); 
+            trasactionData.innerText = "updating...";
             mService.updateEMVConfigByXml(this.result);
         }  
         reader.readAsText(file);  
@@ -278,18 +340,24 @@ function upload(input) {  //支持chrome IE10
     }
 }
 
-function getQPosInfo(){
-    mService.getQPosInfo();
-}
-
 function selectEmvFile(){
     //$('#updateEmvFile').click();
     if(Connected){
-    document.getElementById("updateEmvFile").click();
+        document.getElementById("updateEmvFile").click();
     } else{
-        DiscoverDevice();
+        // DiscoverDevice();
         UpdateUI();
+        alert("No pos connected!");
     }
+}
+
+function getQPosInfo(){
+    mService.getQPosInfo();
+    // mService.resetPosStatus();
+    // mService.powerOffNFC(10);
+    // mService.doSetBuzzerOperation(2);
+    // mService.doUpdateIPEKOperation("0","09120200630001E0004C","2B7D562AFA3EAC7970664394CD19D3D3","B62AA00000000000",
+    // "09120200630001E0004C","2B7D562AFA3EAC7970664394CD19D3D3","B62AA00000000000","09120200630001E0004C","2B7D562AFA3EAC7970664394CD19D3D3","B62AA00000000000");
 }
 
 //连接设备或断开连接
@@ -304,28 +372,24 @@ function DiscoveOrDisConnect() {
     }
 }
 
-function test(){
- 	
-}
-
 function startTrade(){
     var currency = document.getElementById("currency_code").value;   //获取form表单中第一个元素的值      
     var amount = document.getElementById("Amount").value;   //直接通过元素的属性Id来直接获取  
     var tractionType = document.getElementById("TractionType").value; 
     if(Connected){
-
+        
         setAmount(amount, "", currency, transactionTypeConvert(tractionType));
-        // setAmountIcon(AmountType.MONEY_TYPE_CUSTOM_STR,"Rs");
         mService.doTrade(0,20);
-        // mService.lcdShowCustomDisplay(LcdModeAlign.LCD_MODE_ALIGNCENTER,)
+        // mService.sendApduByNFC("00A4000C02001",30);
+        // setAmountIcon(AmountType.MONEY_TYPE_CUSTOM_STR,"Rs");
         // var strArr = stringToBytes("enter amount");
         // var displayStr = byteArray2Hex(strArr);
+        // mService.lcdShowCustomDisplay(LcdModeAlign.LCD_MODE_ALIGNCENTER,displayStr,10);
         // mService.doInputCustomStr(CustomInputOperateType.isNumber, CustomInputDisplayType.Other, 6,displayStr,"test",amount);
-        // mService.doUpdateIPEKOperation("0","09120200630001E0004C","2B7D562AFA3EAC7970664394CD19D3D3","B62AA00000000000",
-        // 	"09120200630001E0004C","2B7D562AFA3EAC7970664394CD19D3D3","B62AA00000000000","09120200630001E0004C","2B7D562AFA3EAC7970664394CD19D3D3","B62AA00000000000")
     }else{
-        DiscoverDevice();
+        // DiscoverDevice();
         UpdateUI();
+        alert("No pos connected!");
     }
 }
 
@@ -367,6 +431,14 @@ function transactionTypeConvert(str){
        return TransactionType.UPDATE_PIN;
    }else if (str == "17") {
        return TransactionType.REFUND;
+   }else if (str == "18") {
+       return TransactionType.SALES_NEW;
+   }else if (str == "19") {
+       return TransactionType.LEGACY_MONEY_ADD;
+   }else if (str == "20") {
+       return TransactionType.NON_LEGACY_MONEY_ADD;
+   }else if (str == "21"){
+       return TransactionType.BALANCE_UPDATE;
    }
 }
 
@@ -404,7 +476,7 @@ function DiscoverDevice() {
     //过滤出我们需要的蓝牙设备
     //过滤器
     var options = {
-        filters: [{ namePrefix: 'MPOS' },{ namePrefix: 'QPOS' },{ namePrefix: 'VEL' },{ namePrefix:'watu'}],
+        filters: [{ namePrefix: 'MPOS' },{ namePrefix: 'QPOS' },{ namePrefix: 'VEL' },{ namePrefix: 'watu'}],
         optionalServices: [MPOS_SERVICE]
     };
 
@@ -489,6 +561,7 @@ function DiscoverService() {
                         if(Characteristic.uuid == MPOS_VALUE){
                             writeChar = Characteristic;
                             MPOS_DATA_Ready = true;
+                            mService.setCommunicationMode(CommunicationMode.BLUETOOTH);
                             new webBluetooth(mOnResult,writeChar);
                         }else if(Characteristic.uuid == notify_uuid){
                             MPOS_Notify_State = Characteristic;
@@ -534,7 +607,7 @@ function UpdateUI() {
     else {
         document.getElementById("UI_Connected").innerHTML = "Connect Status：Disconnect";
         document.getElementById("UI_DeviceType").innerHTML = "Device Type：Unknow"
-        document.getElementById("MBtn").innerHTML = "Connect";
+        document.getElementById("MBtn").innerHTML = "Scan";
         MPOS_DATA_Ready = false;
     }
 
@@ -560,7 +633,6 @@ function SetString(){
     let Buff=new Uint8Array(arr);
     UART_State.writeValue(Buff.buffer);
 }
-
 
 //InitUI();
 UpdateUI();

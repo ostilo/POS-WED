@@ -20,7 +20,9 @@
                 <li id="UI_Connected">Connect Status：Disconnect</li>
                 <li id="UI_DeviceType">Device Type：Unknow</li>
             </ol>
-            <button id="MBtn" onclick="DiscoveOrDisConnect()">Connect</button>
+            <button id="MBtn" onclick="DiscoveOrDisConnect()">Scan</button>
+            <br>
+            <button id ="request-device">Connect</button>
             <br>
             <br>
             <button onclick="selectEmvFile()">Update Emv</button>    
@@ -84,7 +86,7 @@
                     AMOUNT
                 </td>
                 <td>
-                    <input id="Amount" class="input_control" type="text" name="Amount" value="0.00">
+                    <input id="Amount" class="input_control" type="text" name="Amount" value="12">
                 </td>
             </tr>
 
@@ -108,6 +110,7 @@
     </div> -->
 
 </body>
-<script src="./lib/main.js" defer></script>
+<script src="./lib/main.js"></script>
 <script src="./Script.js" defer></script>
+<!-- <script src="./polyfill.min.js" defer></script> -->
 </html>
